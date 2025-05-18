@@ -3,6 +3,8 @@ import os
 import random
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 TOKEN = os.environ["CHAT_VORONOK_TOKEN"]
 PING_CHAT_ID = int(os.environ["VORONOK_PING_CHAT_ID"])
@@ -15,6 +17,21 @@ quotes = [
     "Агитация не прошла цензуру. Сообщение удалено.",
     "Речь признана подрывной. Автор под наблюдением.",
 ]
+
+# заглушка для render
+class PingHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_http_server():
+    server = HTTPServer(("0.0.0.0", 8080), PingHandler)
+    server.serve_forever()
+
+# Запуск в фоне
+threading.Thread(target=run_http_server, daemon=True).start()
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
