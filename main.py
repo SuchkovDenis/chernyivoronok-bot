@@ -1,9 +1,11 @@
+import asyncio
 import os
 import random
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 TOKEN = os.environ["CHAT_VORONOK_TOKEN"]
+PING_CHAT_ID = int(os.environ["VORONOK_PING_CHAT_ID"])
 
 quotes = [
     "Приехал чёрный воронок. Сообщение было ликвидировано во имя спокойствия народа.",
@@ -36,7 +38,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Ошибка: {e}")
 
-app = ApplicationBuilder().token(TOKEN).build()
+async def autoping(app):
+    await app.bot.send_message(chat_id=PING_CHAT_ID, text="🕊 Бот включён.")
+
+    while True:
+        await asyncio.sleep(300)  # каждые 5 минут
+        try:
+            await app.bot.send_message(chat_id=PING_CHAT_ID, text="🕊 Пинг.")
+        except Exception as e:
+            print(f"Ошибка при пинге: {e}")
+
+async def post_init(app):
+    app.create_task(autoping(app))
+
+app = (
+    ApplicationBuilder()
+    .token(TOKEN)
+    .post_init(post_init)
+    .build()
+)
+
 app.add_handler(MessageHandler(filters.ALL, handle_message))
 
 app.run_polling()
